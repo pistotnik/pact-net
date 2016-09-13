@@ -1,11 +1,13 @@
-﻿using Microsoft.Owin.Testing;
+﻿using Microsoft.Owin.Security.DataProtection;
+using Microsoft.Owin.Security.OAuth;
+using Microsoft.Owin.Testing;
 using PactNet;
 using PactNet.Reporters.Outputters;
 using Xunit;
 
 namespace Provider.Api.Web.Tests
 {
-    public class EventApiTests
+    public class EventApiTests : BaseAuthenticatedApiTestFixture
     {
         [Fact]
         public void EnsureEventApiHonoursPactWithConsumer()
@@ -26,14 +28,21 @@ namespace Provider.Api.Web.Tests
                     setUp: EnsureOneDetailsViewEventExists);
 
             //Act / Assert
-            using (var testServer = TestServer.Create<Startup>())
+            Server = TestServer.Create(app =>
             {
-                pactVerifier
-                   .ServiceProvider("Event API", testServer.HttpClient)
+                var apiStartup = new Startup();
+                apiStartup.Configuration(app);
+                DataProtector = app.CreateDataProtector(typeof(OAuthAuthorizationServerMiddleware).Namespace, "Access_Token", "v1");
+            });
+
+            pactVerifier
+                   .ServiceProvider("Event API", Server.HttpClient)
                    .HonoursPactWith("Consumer")
                    .PactUri("../../../Consumer.Tests/pacts/consumer-event_api.json")
+                   .AuthenticationOptions(new PactAuthorizationOptions(Token))
                    .Verify();
-            }
+            AfterServerSetup();
+            // what if my api when it is triggered, needs a access token; in this case it will not work
 
             // Verify that verifaction log is also sent to additional reporters defined in the config
             Assert.Contains("Verifying a Pact between Consumer and Event API", outputter.Output);

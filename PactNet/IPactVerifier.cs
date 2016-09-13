@@ -18,6 +18,7 @@ namespace PactNet
         IPactVerifier ServiceProvider(string providerName, Func<ProviderServiceRequest, ProviderServiceResponse> httpRequestSender);
         IPactVerifier HonoursPactWith(string consumerName);
         IPactVerifier PactUri(string uri, PactUriOptions options = null);
+        IPactVerifier AuthenticationOptions(PactAuthorizationOptions authorizationOptions);
         void Verify(string description = null, string providerState = null);
     }
 }

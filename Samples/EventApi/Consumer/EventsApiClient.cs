@@ -114,6 +114,7 @@ namespace Consumer
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/events");
             request.Headers.Add("Accept", "application/json");
+            request.Headers.Add("Authorization", "Bearer Foo");
 
             var response = _httpClient.SendAsync(request);
 

@@ -10,7 +10,7 @@ using PactNet.Mocks.MockHttpService.Models;
 using PactNet.Mocks.MockHttpService.Validators;
 using PactNet.Models;
 using PactNet.Reporters;
-using System.Text;
+using PactNet.Reporters.Outputters;
 
 namespace PactNet
 {
@@ -28,6 +28,7 @@ namespace PactNet
         public ProviderStates ProviderStates { get; private set; }
         public string PactFileUri { get; private set; }
         public PactUriOptions PactUriOptions { get; private set; }
+        public PactAuthorizationOptions PactAuthorizationOptions { get; private set; }
 
         internal PactVerifier(
             Action setUp, 
@@ -43,6 +44,8 @@ namespace PactNet
             _config = config ?? new PactVerifierConfig();
 
             ProviderStates = new ProviderStates(setUp, tearDown);
+
+            
         }
 
         /// <summary>
@@ -101,7 +104,7 @@ namespace PactNet
             }
 
             ProviderName = providerName;
-            _httpRequestSender = new HttpClientRequestSender(httpClient);
+            _httpRequestSender = new HttpClientRequestSender(httpClient, new FileReportOutputter(() => _config.LoggerName));
                 
             return this;
         }
@@ -146,6 +149,13 @@ namespace PactNet
             return this;
         }
 
+        public IPactVerifier AuthenticationOptions(PactAuthorizationOptions pactAuthorizationOptions)
+        {
+            PactAuthorizationOptions = pactAuthorizationOptions;
+
+            return this;
+        }
+
         public IPactVerifier PactUri(string uri, PactUriOptions options = null)
         {
             if (String.IsNullOrEmpty(uri))
@@ -178,7 +188,8 @@ namespace PactNet
             {
                 string pactFileJson;
 
-                if (IsWebUri(PactFileUri))
+                var isWebUri = IsWebUri(PactFileUri);
+                if (isWebUri)
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, PactFileUri);
                     request.Headers.Add("Accept", "application/json");
@@ -186,6 +197,10 @@ namespace PactNet
                     if (PactUriOptions != null)
                     {
                         request.Headers.Add("Authorization", String.Format("{0} {1}", PactUriOptions.AuthorizationScheme, PactUriOptions.AuthorizationValue));
+                    }
+                    else if (PactAuthorizationOptions != null)
+                    {
+                        request.Headers.Add("Authorization", String.Format("{0} {1}", "Bearer", PactAuthorizationOptions.AccessToken));
                     }
 
                     var response = _httpClient.SendAsync(request).Result;
@@ -207,6 +222,8 @@ namespace PactNet
                 }
 
                 pactFile = JsonConvert.DeserializeObject<ProviderServicePactFile>(pactFileJson);
+
+                ReplaceAuthorizationRequestHeader(isWebUri, pactFile);
             }
             catch (Exception ex)
             {
@@ -241,6 +258,24 @@ namespace PactNet
             finally
             {
                 LogProvider.CurrentLogProvider.RemoveLogger(_config.LoggerName);
+            }
+        }
+
+        private void ReplaceAuthorizationRequestHeader(bool isWebUri, ProviderServicePactFile pactFile)
+        {
+            if (!isWebUri && PactAuthorizationOptions != null)
+            {
+                foreach (ProviderServiceInteraction interaction in pactFile.Interactions)
+                {
+                    ProviderServiceRequest request = interaction.Request;
+                    // NOTE: Client must record the expectations with a dummy Authorization Bearer; for example "Authorization": "Bearer Foo", since this is what he expects
+                    const string authorizationKey = "Authorization";
+                    if (request != null && request.Headers != null && request.Headers.ContainsKey(authorizationKey))
+                    {
+                        request.Headers.Remove(authorizationKey);
+                        request.Headers.Add(authorizationKey, "Bearer " + PactAuthorizationOptions.AccessToken);
+                    }
+                }
             }
         }
 

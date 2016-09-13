@@ -51,10 +51,11 @@ namespace PactNet.Mocks.MockHttpService.Nancy
                 _log.InfoFormat("Found matching response for {0} {1}", actualRequestMethod, actualRequestPath);
                 _log.Debug(JsonConvert.SerializeObject(matchingInteraction.Response, JsonConfig.PactFileSerializerSettings));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _log.ErrorFormat("No matching interaction found for {0} {1}", actualRequestMethod, actualRequestPath);
                 _mockProviderRepository.AddHandledRequest(new HandledRequest(actualRequest, null));
+                _log.Debug(ex.Message);
                 throw;
             }
             

@@ -594,5 +594,109 @@ namespace PactNet.Tests
                 Arg.Any<ProviderServicePactFile>(),
                 (pactVerifier as PactVerifier).ProviderStates);
         }
+
+        [Fact]
+        public void Verify_WithHttpsPactFileUriAndAuthorizationOptions_CallsHttpClientWithJsonGetRequestAndBearerAuthorizationHeader()
+        {
+            var serviceProvider = "Event API";
+            var serviceConsumer = "My client";
+            var pactUri = "https://yourpactserver.com/getlatestpactfile";
+            var pactFileJson = "{ \"provider\": { \"name\": \"Event API\" }, \"consumer\": { \"name\": \"My client\" }, \"interactions\": [{ \"description\": \"My Description\", \"provider_state\": \"My Provider State\" }, { \"description\": \"My Description 2\", \"provider_state\": \"My Provider State\" }, { \"description\": \"My Description\", \"provider_state\": \"My Provider State 2\" }], \"metadata\": { \"pactSpecificationVersion\": \"1.0.0\" } }";
+            var options = new PactAuthorizationOptions(accessToken: "FooBearer");
+
+            var pactVerifier = GetSubject();
+
+            _fakeHttpMessageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(pactFileJson, Encoding.UTF8, "application/json")
+            };
+
+            pactVerifier
+                .ServiceProvider(serviceProvider, new HttpClient())
+                .HonoursPactWith(serviceConsumer)
+                .PactUri(pactUri)
+                .AuthenticationOptions(options);
+
+            pactVerifier.Verify();
+
+            Assert.Equal(HttpMethod.Get, _fakeHttpMessageHandler.RequestsReceived.Single().Method);
+            Assert.Equal(_fakeHttpMessageHandler.RequestsReceived.Single().Headers.Authorization.Scheme, "Bearer");
+            Assert.Equal(_fakeHttpMessageHandler.RequestsReceived.Single().Headers.Authorization.Parameter, options.AccessToken);
+        }
+
+        [Fact]
+        public void Verify_WithHttpsPactFileUriAndAuthorizationOptionsAndInteractionWithNotExpectingAuthorizationBearer_CallsProviderServiceValidatorWithNoInteractionsWithAccessTokenInItsRequest()
+        {
+            var serviceProvider = "Event API";
+            var serviceConsumer = "My client";
+            var pactUri = "../../../Consumer.Tests/pacts/my_client-event_api.json";
+            var interactionWithNoAuthorizationRequest = "{\"description\":\"My description\",\"provider_state\":\"My provider state\"," +
+                              "\"request\":{\"method\":\"get\",\"path\":\"/tester\",\"query\":\"test=2\"," +
+                              "\"headers\":{\"Accept\":\"application/json\"},\"body\":{\"test\":\"hello\"}}," +
+                              "\"response\":{\"status\":200,\"headers\":{\"Content-Type\":\"application/json\"},\"body\":{\"yep\":\"it worked\"}}}";
+            var pactFileJson = "{ \"provider\": { \"name\": \"Event API\" }, \"consumer\": { \"name\": \"My client\" }, " +
+                               "\"interactions\": [" +
+                               "{ \"description\": \"My Description\", \"provider_state\": \"My Provider State 2\" }, "
+                               + interactionWithNoAuthorizationRequest +
+                               "], \"metadata\": { \"pactSpecificationVersion\": \"1.0.0\" } }";
+            var options = new PactAuthorizationOptions(accessToken: "FooBearer");
+
+            var pactVerifier = GetSubject();
+
+            _mockFileSystem.File.ReadAllText(pactUri).Returns(pactFileJson);
+
+            pactVerifier
+                .ServiceProvider(serviceProvider, new HttpClient())
+                .HonoursPactWith(serviceConsumer)
+                .PactUri(pactUri)
+                .AuthenticationOptions(options);
+
+            pactVerifier.Verify();
+
+            _mockProviderServiceValidator.Received(1).Validate(
+                Arg.Is<ProviderServicePactFile>(
+                    x => x.Interactions.Count() == 2 
+                        && !x.Interactions.Last().Request.Headers.ContainsKey("Authorization")),
+                Arg.Any<ProviderStates>());
+        }
+
+        [Fact]
+        public void Verify_WithHttpsPactFileUriAndAuthorizationOptionsAndInteractionExpectingAuthorizationBearer_CallsProviderServiceValidatorWithAnInteractionWithAccessTokenInItsRequest()
+        {
+            var serviceProvider = "Event API";
+            var serviceConsumer = "My client";
+            var pactUri = "../../../Consumer.Tests/pacts/my_client-event_api.json";
+            var interactionWithAuthorizationRequest = "{\"description\":\"My description\",\"provider_state\":\"My provider state\"," +
+                              "\"request\":{\"method\":\"get\",\"path\":\"/tester\",\"query\":\"test=2\"," +
+                              "\"headers\":{\"Accept\":\"application/json\", " +
+                              "\"Authorization\":\"Bearer Bar\"" +
+                              "},\"body\":{\"test\":\"hello\"}}," +
+                              "\"response\":{\"status\":200,\"headers\":{\"Content-Type\":\"application/json\"},\"body\":{\"yep\":\"it worked\"}}}";
+            var pactFileJson = "{ \"provider\": { \"name\": \"Event API\" }, \"consumer\": { \"name\": \"My client\" }, " +
+                               "\"interactions\": [" +
+                               "{ \"description\": \"My Description\", \"provider_state\": \"My Provider State 2\" }, "
+                               + interactionWithAuthorizationRequest +
+                               "], \"metadata\": { \"pactSpecificationVersion\": \"1.0.0\" } }";
+            var options = new PactAuthorizationOptions(accessToken: "FooBearer");
+
+            var pactVerifier = GetSubject();
+
+            _mockFileSystem.File.ReadAllText(pactUri).Returns(pactFileJson);
+
+            pactVerifier
+                .ServiceProvider(serviceProvider, new HttpClient())
+                .HonoursPactWith(serviceConsumer)
+                .PactUri(pactUri)
+                .AuthenticationOptions(options);
+
+            pactVerifier.Verify();
+
+            _mockProviderServiceValidator.Received(1).Validate(
+                Arg.Is<ProviderServicePactFile>(
+                    x => x.Interactions.Count() == 2
+                        && x.Interactions.Last().Request.Headers.ContainsKey("Authorization")
+                        && x.Interactions.Last().Request.Headers["Authorization"].Equals("Bearer FooBearer")),
+                Arg.Any<ProviderStates>());
+        }
     }
 }

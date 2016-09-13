@@ -2,12 +2,14 @@
 using Autofac;
 using Autofac.Integration.WebApi;
 using Microsoft.Owin;
+using Microsoft.Owin.Security.OAuth;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Owin;
 using Provider.Api.Web;
 using Provider.Api.Web.Controllers;
 
+//http://stackoverflow.com/questions/20168978/do-i-need-a-global-asax-cs-file-at-all-if-im-using-an-owin-startup-cs-class-and
 [assembly: OwinStartup("ApiConfiguration", typeof(Startup))]
 namespace Provider.Api.Web
 {
@@ -16,6 +18,11 @@ namespace Provider.Api.Web
         public void Configuration(IAppBuilder app)
         {
             var config = new HttpConfiguration();
+
+            // Owin Middleware
+            // We use token middleware for requests that require authorization.
+            var oAuthBearerOptions = new OAuthBearerAuthenticationOptions();
+            app.UseOAuthBearerAuthentication(oAuthBearerOptions);
 
             config.MapHttpAttributeRoutes();
 

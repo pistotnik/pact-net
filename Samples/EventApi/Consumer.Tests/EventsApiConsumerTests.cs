@@ -33,7 +33,8 @@ namespace Consumer.Tests
                     Path = "/events",
                     Headers = new Dictionary<string, string>
                     {
-                        { "Accept", "application/json" }
+                        { "Accept", "application/json" },
+                        { "Authorization", "Bearer Foo" } // mandatory for the methods where I as a client expect for the authorization step
                     }
                 })
                 .WillRespondWith(new ProviderServiceResponse
@@ -41,9 +42,9 @@ namespace Consumer.Tests
                     Status = 200,
                     Headers = new Dictionary<string, string>
                     {
-                        { "Content-Type", "application/json; charset=utf-8" }
+                        { "Content-Type", "application/json; charset=utf-8" },
                     },
-                    Body = new []
+                    Body = new[]
                     {
                         new 
                         {
@@ -94,7 +95,7 @@ namespace Consumer.Tests
                     Path = "/events",
                     Headers = new Dictionary<string, string>
                     {
-                        { "Content-Type", "application/json; charset=utf-8" }
+                        { "Content-Type", "application/json; charset=utf-8" },
                     },
                     Body = new
                     {
@@ -279,7 +280,7 @@ namespace Consumer.Tests
                     {
                         { "Content-Type", "application/json; charset=utf-8" }
                     },
-                    Body = new []
+                    Body = new[]
                     {
                         new
                         {

@@ -6,6 +6,7 @@ using NSubstitute;
 using PactNet.Mocks.MockHttpService;
 using PactNet.Mocks.MockHttpService.Mappers;
 using PactNet.Mocks.MockHttpService.Models;
+using PactNet.Reporters.Outputters;
 using PactNet.Tests.Fakes;
 using Xunit;
 
@@ -32,7 +33,7 @@ namespace PactNet.Tests.Mocks.MockHttpService
             return new HttpClientRequestSender(
                 httpClient,
                 _mockHttpRequestMessageMapper,
-                _mockProviderServiceResponseMapper);
+                _mockProviderServiceResponseMapper, new ConsoleReportOutputter());
         }
 
         [Fact]
