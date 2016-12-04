@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Provider.Api.Web.Tests
 {
-    public class EventApiTests : BaseAuthenticatedApiTestFixture
+    public class EventApiTests : BaseApiTestFixture
     {
         [Fact]
         public void EnsureEventApiHonoursPactWithConsumer()
@@ -30,16 +30,16 @@ namespace Provider.Api.Web.Tests
             //Act / Assert
             Server = TestServer.Create(app =>
             {
+                app.Use(typeof(AuthMiddleware), app.CreateDataProtector(typeof(OAuthAuthorizationServerMiddleware).Namespace, "Access_Token", "v1"));
                 var apiStartup = new Startup();
                 apiStartup.Configuration(app);
-                DataProtector = app.CreateDataProtector(typeof(OAuthAuthorizationServerMiddleware).Namespace, "Access_Token", "v1");
             });
 
             pactVerifier
                    .ServiceProvider("Event API", Server.HttpClient)
                    .HonoursPactWith("Consumer")
                    .PactUri("../../../Consumer.Tests/pacts/consumer-event_api.json")
-                   .AuthenticationOptions(new PactAuthorizationOptions(Token))
+                   //.AuthenticationOptions(new PactAuthorizationOptions(Token))
                    .Verify();
             AfterServerSetup();
             // what if my api when it is triggered, needs a access token; in this case it will not work

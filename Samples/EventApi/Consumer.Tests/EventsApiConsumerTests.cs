@@ -25,6 +25,8 @@ namespace Consumer.Tests
         public void GetAllEvents_WhenCalled_ReturnsAllEvents()
         {
             //Arrange
+            var testAuthToken = "ValidAuthToken";
+
             _mockProviderService.Given("there are events with ids '45D80D13-D5A2-48D7-8353-CBB4C0EAABF5', '83F9262F-28F1-4703-AB1A-8CFD9E8249C9' and '3E83A96B-2A0C-49B1-9959-26DF23F83AEB'")
                 .UponReceiving("a request to retrieve all events")
                 .With(new ProviderServiceRequest
@@ -34,7 +36,7 @@ namespace Consumer.Tests
                     Headers = new Dictionary<string, string>
                     {
                         { "Accept", "application/json" },
-                        { "Authorization", "Bearer Foo" } // mandatory for the methods where I as a client expect for the authorization step
+                        { "Authorization", $"Bearer {testAuthToken}" }
                     }
                 })
                 .WillRespondWith(new ProviderServiceResponse
@@ -67,7 +69,7 @@ namespace Consumer.Tests
                     }
                 });
 
-            var consumer = new EventsApiClient(_mockProviderServiceBaseUri);
+            var consumer = new EventsApiClient(_mockProviderServiceBaseUri, testAuthToken);
 
             //Act
             var events = consumer.GetAllEvents();

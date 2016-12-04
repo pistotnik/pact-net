@@ -87,8 +87,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AuthMiddleware.cs" />
     <Compile Include="BaseApiTestFixture.cs" />
-    <Compile Include="BaseAuthenticatedApiTestFixture.cs" />
+    <Compile Include="TokenGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="EventAPITests.cs" />
   </ItemGroup>
