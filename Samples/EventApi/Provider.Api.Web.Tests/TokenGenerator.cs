@@ -2,25 +2,20 @@
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.DataHandler;
 using System.Security.Claims;
+using Microsoft.Owin.Security.DataProtection;
 
 namespace Provider.Api.Web.Tests
 {
-    /// <summary>
-    /// Base class for integration tests that require authentication.
-    /// </summary>
-    public abstract class BaseAuthenticatedApiTestFixture : BaseApiTestFixture
+    public class TokenGenerator
     {
-        private string _token;
+        private readonly IDataProtector _dataProtector;
 
-        /// <summary>
-        /// Token for authenticated requests.
-        /// </summary>
-        protected virtual string Token
+        public TokenGenerator(IDataProtector dataProtector)
         {
-            get { return _token ?? (_token = GenerateToken()); }
+            _dataProtector = dataProtector;
         }
 
-        private string GenerateToken()
+        public string Generate()
         {
             // Generate an OAuth bearer token for ASP.NET/Owin Web Api service that uses the default OAuthBearer token middleware.
             var claims = new[]
@@ -32,7 +27,7 @@ namespace Provider.Api.Web.Tests
             var identity = new ClaimsIdentity(claims, "Test");
 
             // Use the same token generation logic as the OAuthBearer Owin middleware. 
-            var tdf = new TicketDataFormat(this.DataProtector);
+            var tdf = new TicketDataFormat(_dataProtector);
             var ticket = new AuthenticationTicket(identity, new AuthenticationProperties { ExpiresUtc = DateTime.UtcNow.AddHours(1) });
             var accessToken = tdf.Protect(ticket);
 

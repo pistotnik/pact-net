@@ -8,8 +8,6 @@ namespace Provider.Api.Web.Tests
     {
         protected TestServer Server { get; set; }
 
-        protected IDataProtector DataProtector { get; set; }
-
         protected virtual void AfterServerSetup()
         {
             // Nothing

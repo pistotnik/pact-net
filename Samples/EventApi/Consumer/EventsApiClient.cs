@@ -16,9 +16,14 @@ namespace Consumer
     {
         private readonly HttpClient _httpClient;
 
-        public EventsApiClient(string baseUri = null)
+        public EventsApiClient(string baseUri = null, string authToken = null)
         {
             _httpClient = new HttpClient { BaseAddress = new Uri(baseUri ?? "http://my.api/v2/capture") };
+
+            if (authToken != null)
+            {
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {authToken}");
+            }
         }
 
         private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
@@ -114,7 +119,6 @@ namespace Consumer
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/events");
             request.Headers.Add("Accept", "application/json");
-            request.Headers.Add("Authorization", "Bearer Foo");
 
             var response = _httpClient.SendAsync(request);
 
